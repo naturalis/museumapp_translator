@@ -1,5 +1,25 @@
 <?php
 
+/*
+
+    text is translated, but if we have dutch & english names ourselves:
+
+    - dutch name is replaced with: 
+        <remove_me>dutch name</remove_me> <ttik>english name</ttik>
+    - API is told to ignore everything between <ttik>.
+    - after translateion:
+        <remove_me>dutch name</remove_me> is removed
+        <ttik> and </ttik> are removed, leaving our own english translation
+    - the <remove_me>dutch name</remove_me> is required to retain an actual synrtactic subject in the sentence.
+      otherwise 
+        De <ttik>ocean sunfish</ttik> is groot.
+      becomes
+        It <ttik>ocean sunfish</ttik> is big.
+      rather than
+        The <ttik>ocean sunfish</ttik> is big.
+
+*/
+
 class TTIKtranslator extends BaseClass
 {
     private $languageCode_source;
@@ -39,6 +59,14 @@ class TTIKtranslator extends BaseClass
     public function setTranslatorAPIKey( $translatorAPIKey )
     {
         $this->translatorAPIKey = $translatorAPIKey;
+    }
+
+    public function setSelfTranslateNames( $selfTranslateNames )
+    {
+        if (is_bool($selfTranslateNames))
+        {
+            $this->selfTranslateNames = $selfTranslateNames;
+        }
     }
 
     public function setTranslatorMaxRecords( $maxRecords )
@@ -88,8 +116,11 @@ class TTIKtranslator extends BaseClass
 
         if ($this->maxRecords>0)
         {
-            $this->log(sprintf("max records: %s", $this->maxRecords), 3, "ttik_translations");            
+            $this->log(sprintf("max records: %s", $this->maxRecords), 3, "ttik_translations");
         }
+
+        $this->log(sprintf("self-translating vernacular names (if available): %s",
+            $this->setSelfTranslateNames ? 'y' : 'n' ), 3, "ttik_translations");
     }
 
     public function getUntranslatedTexts()
@@ -155,15 +186,15 @@ class TTIKtranslator extends BaseClass
                     continue;
                 }
 
-                // if (isset($this->translatedHeaders[$text['title']]))
-                // {
-                //     $translatedTitle = $this->translatedHeaders[$text['title']];
-                // }
-                // else
-                // {
-                //     $this->translatedHeaders[$text['title']] = $translatedTitle = 
-                //         $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
-                // }
+                if (isset($this->translatedHeaders[$text['title']]))
+                {
+                    $translatedTitle = $this->translatedHeaders[$text['title']];
+                }
+                else
+                {
+                    $this->translatedHeaders[$text['title']] = $translatedTitle = 
+                        $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
+                }
 
                 if ($this->selfTranslateNames)
                 {
