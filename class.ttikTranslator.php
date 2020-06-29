@@ -141,61 +141,6 @@ class TTIKtranslator extends BaseClass
             count($this->untranslatedTexts),$row['total']), 3, "ttik_translations");
     }
 
-    private function selfTranslateName($text,$dutch_names,$english_name,$taxon)
-    {
-
-        var_dump($dutch_names);
-        var_dump($english_name);
-
-        try {
-
-            $names_dutch = array_filter(json_decode($dutch_names,true),function($a)
-            {
-                var_dump($a);
-                return $a["nametype"]=="isPreferredNameOf";
-            });
-
-            $dutchName = isset($names_dutch[0]) ? $names_dutch[0]['name'] : null;
-
-            $names_english = array_filter(json_decode($english_name,true),function($a)
-            {
-                var_dump($a);
-                return $a["nametype"]=="isPreferredNameOf";
-            });
-
-            $englishName = isset($names_english[0]) ? $names_english[0]['name'] : null;
-
-        var_dump($dutchName);
-        var_dump($englishName);
-
-
-            if (is_null($dutchName))
-            {
-                throw new Exception(sprintf("missing dutch name for %s",$taxon), 1);
-            }
-
-            if (is_null($englishName))
-            {
-                throw new Exception(sprintf("missing english name for %s",$taxon), 1);
-            }
-
-            return str_replace(
-                $dutchName,
-                sprintf(
-                    "<%s>%s</%s>",
-                    $this->selfTranslatedtagName,
-                    $englishName,
-                    $this->selfTranslatedtagName
-                ),
-                $text
-            );
-
-        } catch (Exception $e) {
-            $this->log(sprintf("error self-translating name: %s",$e->getMessage(),1, "ttik_translations"));
-            return $text;
-        }
-    }
-
     public function translateTexts()
     {
         foreach ($this->untranslatedTexts as $val)
@@ -224,13 +169,10 @@ class TTIKtranslator extends BaseClass
                     $text['body'] = $this->selfTranslateName(
                         $text['body'],
                         $val['dutch_names'],
-                        $val['names_english'],
+                        $val['english_name'],
                         $val['taxon']
                     );
                 }
-
-
-                continue;
 
                 $translatedBody = $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['body'])));
 
@@ -380,4 +322,51 @@ class TTIKtranslator extends BaseClass
 
         return $data;
     }
+
+    private function selfTranslateName($text,$dutch_names,$english_name,$taxon)
+    {
+        try {
+
+            $names_dutch = array_filter(json_decode($dutch_names,true),function($a)
+            {
+                var_dump($a);
+                return $a["nametype"]=="isPreferredNameOf";
+            });
+
+            $dutchName = isset($names_dutch[0]) ? $names_dutch[0]['name'] : null;
+
+            $names_english = array_filter(json_decode($english_name,true),function($a)
+            {
+                var_dump($a);
+                return $a["nametype"]=="isPreferredNameOf";
+            });
+
+            $englishName = isset($names_english[0]) ? $names_english[0]['name'] : null;
+
+            if (is_null($dutchName))
+            {
+                throw new Exception(sprintf("missing dutch name for %s",$taxon), 1);
+            }
+
+            if (is_null($englishName))
+            {
+                throw new Exception(sprintf("missing english name for %s",$taxon), 1);
+            }
+
+            return str_replace(
+                $dutchName,
+                sprintf(
+                    "<%s>%s</%s>",
+                    $this->selfTranslatedtagName,
+                    $englishName,
+                    $this->selfTranslatedtagName
+                ),
+                $text
+            );
+
+        } catch (Exception $e) {
+            $this->log(sprintf("error self-translating name: %s",$e->getMessage(),1, "ttik_translations"));
+            return $text;
+        }
+    }    
 }
