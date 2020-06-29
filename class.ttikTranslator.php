@@ -361,7 +361,6 @@ class TTIKtranslator extends BaseClass
 
             $names_dutch = array_filter(json_decode($dutch_names,true),function($a)
             {
-                var_dump($a);
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
@@ -369,7 +368,6 @@ class TTIKtranslator extends BaseClass
 
             $names_english = array_filter(json_decode($english_name,true),function($a)
             {
-                var_dump($a);
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
