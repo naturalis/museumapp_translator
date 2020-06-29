@@ -10,12 +10,15 @@ class TTIKtranslator extends BaseClass
     private $translatorAPIKey;
     private $maxRecords;
 
+    private $selfTranslateNames=true;
+    private $selfTranslatedtagName="ttik";
 
     private $untranslatedTexts=[];
     private $translatedHeaders=[];
     private $translatedTexts=[];
 
     const TABLE = 'ttik_translations';
+    const TABLE_NAMES = 'ttik';
 
     public function setSourceAndTargetLanguage( $source, $target )
     {
@@ -94,12 +97,19 @@ class TTIKtranslator extends BaseClass
 
         $result = $this->db->query("
             select
-                source.*
+                source.*,
+                names.dutch as dutch_names,
+                names.english as english_name
+
             from 
                 ".self::TABLE." source 
                 left join ".self::TABLE." target 
                     on source.taxon_id = target.taxon_id 
                     and target.language_code = '".$this->languageCode_target."' 
+
+                left join ".self::TABLE_NAMES." names 
+                    on source.taxon_id = names.taxon_id 
+
             where 
                 source.language_code='".$this->languageCode_source."' 
                 and target.description is null
@@ -127,8 +137,55 @@ class TTIKtranslator extends BaseClass
         $row = $result->fetch_array(MYSQLI_ASSOC);
 
         $this->log(sprintf("fetched %s untranslated descriptions (found %s already translated records)",
-            count($this->untranslatedTexts),$row['total']));
+            count($this->untranslatedTexts),$row['total']), 3, "ttik_translations");
     }
+
+    private function selfTranslateName($text,$dutch_names,$english_name,$taxon)
+    {
+        try {
+
+            $names_dutch = array_filter(json_decode((array)$dutch_names,true),function($a)
+            {
+                return $a["nametype"]=="isPreferredNameOf";
+            });
+
+            $dutchName = $names_dutch[0] ?? null;
+
+            $names_english = array_filter(json_decode((array)$english_name,true),function($a)
+            {
+                return $a["nametype"]=="isPreferredNameOf";
+            });
+
+            $englishName = $names_english[0] ?? null;
+
+            if (is_null($dutchName))
+            {
+                throw new Exception(sprintf("missing dutch name for %s",$taxon), 1);
+            }
+
+            if (is_null($englishName))
+            {
+                throw new Exception(sprintf("missing english name for %s",$taxon), 1);
+            }
+
+            return str_replace(
+                $dutchName,
+                sprintf(
+                    "<%s>%s</%s>",
+                    $this->selfTranslatedtagName,
+                    $englishName,
+                    $this->selfTranslatedtagName
+                ),
+                $text
+            );
+
+        } catch (Exception $e) {
+            $this->log(sprintf("error self-translating name: %s",$e->getMessage(),1, "ttik_translations"));
+            return $text;
+        }
+    }
+    }
+
 
     public function translateTexts()
     {
@@ -153,10 +210,30 @@ class TTIKtranslator extends BaseClass
                         $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
                 }
 
+                if ($this->selfTranslateNames)
+                {
+                    $text['body'] = $this->selfTranslateName(
+                        $text['body'],
+                        $val['dutch_names'],
+                        $val['names_english'],
+                        $val['taxon']
+                    );
+                }
+
                 $translatedBody = $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['body'])));
 
                 if (!empty($translatedBody))
                 {
+                    if ($this->selfTranslateNames)
+                    {
+                        $translatedBody = 
+                            str_replace(
+                                [sprintf("<%s>",$this->selfTranslatedtagName), sprintf("</%s>",$this->selfTranslatedtagName)],
+                                "",
+                                $translatedBody
+                            );
+                    }
+
                     $this->translatedTexts[$val['taxon_id']][] = [
                         "title" => $translatedTitle,
                         "body" => $translatedBody,
@@ -201,10 +278,11 @@ class TTIKtranslator extends BaseClass
     {
         $payload = [
           'auth_key' => $this->translatorAPIKey,
-          'source_lang'  => strtoupper($this->languageCode_source),
-          'target_lang'    => strtoupper($this->languageCode_target),
-          'preserve_formatting'    => '1',
-          'tag_handling'    => 'xml',
+          'source_lang' => strtoupper($this->languageCode_source),
+          'target_lang'  => strtoupper($this->languageCode_target),
+          'preserve_formatting'  => '1',
+          'tag_handling' => 'xml',
+          'ignore_tags' => $this->selfTranslatedtagName,
           'text' => $text
         ];
 
