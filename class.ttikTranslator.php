@@ -144,14 +144,14 @@ class TTIKtranslator extends BaseClass
     {
         try {
 
-            $names_dutch = array_filter(json_decode((array)$dutch_names,true),function($a)
+            $names_dutch = array_filter((array)json_decode((array)$dutch_names,true),function($a)
             {
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
             $dutchName = $names_dutch[0] ?? null;
 
-            $names_english = array_filter(json_decode((array)$english_name,true),function($a)
+            $names_english = array_filter((array)json_decode((array)$english_name,true),function($a)
             {
                 return $a["nametype"]=="isPreferredNameOf";
             });
