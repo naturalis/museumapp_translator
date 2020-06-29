@@ -48,6 +48,5 @@
             break;
 
         default:
-            echo sprintf("unknown source: %s",$source);
-
+            echo sprintf("error: unknown source '%s'\n",$source);
     }
