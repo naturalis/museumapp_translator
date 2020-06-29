@@ -48,6 +48,6 @@
             break;
 
         default:
-            echo sprintf("unknown source: %s",($source);
+            echo sprintf("unknown source: %s",$source);
 
     }
