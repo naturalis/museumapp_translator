@@ -99,7 +99,8 @@ class TTIKtranslator extends BaseClass
             select
                 source.*,
                 names.dutch as dutch_names,
-                names.english as english_name
+                names.english as english_name,
+                names.taxon as taxon
 
             from 
                 ".self::TABLE." source 
@@ -149,14 +150,14 @@ class TTIKtranslator extends BaseClass
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
-            $dutchName = $names_dutch[0] ?? null;
+            $dutchName = isset($names_dutch[0]) ? $names_dutch[0]['name'] : null;
 
             $names_english = array_filter((array)json_decode($english_name,true),function($a)
             {
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
-            $englishName = $names_english[0] ?? null;
+            $englishName = isset($names_english[0]) ? $names_english[0]['name'] : null;
 
             if (is_null($dutchName))
             {
