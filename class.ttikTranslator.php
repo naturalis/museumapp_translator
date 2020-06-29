@@ -80,11 +80,11 @@ class TTIKtranslator extends BaseClass
             exit();
         }
 
-        $this->log(sprintf("source language: %s; target language: %s", $this->languageCode_source,$this->languageCode_target), 1, "ttik_translations");
+        $this->log(sprintf("source language: %s; target language: %s", $this->languageCode_source,$this->languageCode_target), 3, "ttik_translations");
 
         if ($this->maxRecords>0)
         {
-            $this->log(sprintf("max records: %s", $this->maxRecords), 1, "ttik_translations");            
+            $this->log(sprintf("max records: %s", $this->maxRecords), 3, "ttik_translations");            
         }
     }
 
@@ -165,7 +165,7 @@ class TTIKtranslator extends BaseClass
                 else
                 {
                     $this->log(sprintf("couldn't translate '%s' text for taxon id %s",
-                        $text['title'],$val['taxon_id']));
+                        $text['title'],$val['taxon_id']), 1, "ttik_translations");
                 }
             }            
         }
@@ -174,8 +174,8 @@ class TTIKtranslator extends BaseClass
     public function printAPIUsage()
     {
         $data = $this->getAPIUsage();
-        $this->log(sprintf("character count: %s (character limit: %s)",$data["character_count"],$data["character_limit"]),3,
-            "ttik_translations");
+        $this->log(sprintf("character count: %s (character limit: %s)",
+            number_format($data["character_count"]),number_format($data["character_limit"])), 3, "ttik_translations");
     }
 
     public function storeTranslations()
@@ -218,9 +218,9 @@ class TTIKtranslator extends BaseClass
             //     }]
             // }
 
-            $translations = json_decode($raw,true);
+            $data = json_decode($raw,true);
 
-            return isset($translations[0]) ? $translations[0]['text'] : null;
+            return isset($data['translations']) && isset($data['translations'][0]) ? $data['translations'][0]['text'] : null;
 
         } catch (Exception $e) {
 
