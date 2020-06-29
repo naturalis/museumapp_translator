@@ -182,8 +182,7 @@ class TTIKtranslator extends BaseClass
         } catch (Exception $e) {
             $this->log(sprintf("error self-translating name: %s",$e->getMessage(),1, "ttik_translations"));
             return $text;
-        }
-    }
+        
     }
 
 
