@@ -143,7 +143,6 @@ class TTIKtranslator extends BaseClass
                     continue;
                 }
 
-
                 if (isset($this->translatedHeaders[$text['title']]))
                 {
                     $translatedTitle = $this->translatedHeaders[$text['title']];
@@ -210,8 +209,8 @@ class TTIKtranslator extends BaseClass
         ];
 
         try {
-            $raw = $this->doCurlRequest($this->translatorAPIUrl,$payload);
 
+            $raw = $this->doCurlRequest($this->translatorAPIUrl,$payload);
             // {
             //     "translations": [{
             //         "detected_source_language":"EN",
@@ -221,9 +220,12 @@ class TTIKtranslator extends BaseClass
 
             $translations = json_decode($raw,true);
 
-            return isset($translation[0]) ? $translation[0]['text'] : null;
+            return isset($translations[0]) ? $translations[0]['text'] : null;
+
         } catch (Exception $e) {
+
             $this->log(sprintf("error getting usage: %s",$e->getMessage(),1, "ttik_translations"));
+
         }
     }
 

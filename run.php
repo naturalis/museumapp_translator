@@ -29,6 +29,7 @@
     {
         case "ttik":
             include_once("class.ttikTranslator.php");
+
             $n = new TTIKtranslator;
 
             $n->setDatabaseCredentials( $db );
