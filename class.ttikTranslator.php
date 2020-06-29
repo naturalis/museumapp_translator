@@ -143,21 +143,31 @@ class TTIKtranslator extends BaseClass
 
     private function selfTranslateName($text,$dutch_names,$english_name,$taxon)
     {
+
+        var_dump($dutch_names);
+        var_dump($english_name);
+
         try {
 
-            $names_dutch = array_filter((array)json_decode($dutch_names,true),function($a)
+            $names_dutch = array_filter(json_decode($dutch_names,true),function($a)
             {
+                var_dump($a);
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
             $dutchName = isset($names_dutch[0]) ? $names_dutch[0]['name'] : null;
 
-            $names_english = array_filter((array)json_decode($english_name,true),function($a)
+            $names_english = array_filter(json_decode($english_name,true),function($a)
             {
+                var_dump($a);
                 return $a["nametype"]=="isPreferredNameOf";
             });
 
             $englishName = isset($names_english[0]) ? $names_english[0]['name'] : null;
+
+        var_dump($dutchName);
+        var_dump($englishName);
+
 
             if (is_null($dutchName))
             {
@@ -199,15 +209,15 @@ class TTIKtranslator extends BaseClass
                     continue;
                 }
 
-                if (isset($this->translatedHeaders[$text['title']]))
-                {
-                    $translatedTitle = $this->translatedHeaders[$text['title']];
-                }
-                else
-                {
-                    $this->translatedHeaders[$text['title']] = $translatedTitle = 
-                        $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
-                }
+                // if (isset($this->translatedHeaders[$text['title']]))
+                // {
+                //     $translatedTitle = $this->translatedHeaders[$text['title']];
+                // }
+                // else
+                // {
+                //     $this->translatedHeaders[$text['title']] = $translatedTitle = 
+                //         $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
+                // }
 
                 if ($this->selfTranslateNames)
                 {
@@ -218,6 +228,9 @@ class TTIKtranslator extends BaseClass
                         $val['taxon']
                     );
                 }
+
+
+                continue;
 
                 $translatedBody = $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['body'])));
 
