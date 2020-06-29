@@ -11,7 +11,8 @@ class TTIKtranslator extends BaseClass
     private $maxRecords;
 
     private $selfTranslateNames=true;
-    private $selfTranslatedtagName="ttik";
+    private $selfTranslatedTagName="ttik";
+    private $selfTranslatedTagNameOriginal="remove_me";
 
     private $untranslatedTexts=[];
     private $translatedHeaders=[];
@@ -181,11 +182,11 @@ class TTIKtranslator extends BaseClass
                     if ($this->selfTranslateNames)
                     {
                         $translatedBody = 
-                            str_replace(
-                                [sprintf("<%s>",$this->selfTranslatedtagName), sprintf("</%s>",$this->selfTranslatedtagName)],
-                                "",
-                                $translatedBody
-                            );
+                            preg_replace([
+                                "/(<".$this->selfTranslatedTagNameOriginal.">[^<]*<\/".$this->selfTranslatedTagNameOriginal.">)/",
+                                "/(<[\/]?".$this->selfTranslatedTagName.">)/",
+                                "/(\s)+/"
+                            ],["",""," "],$translatedBody);
                     }
 
                     $this->translatedTexts[$val['taxon_id']][] = [
@@ -236,7 +237,7 @@ class TTIKtranslator extends BaseClass
           'target_lang'  => strtoupper($this->languageCode_target),
           'preserve_formatting'  => '1',
           'tag_handling' => 'xml',
-          'ignore_tags' => $this->selfTranslatedtagName,
+          'ignore_tags' => $this->selfTranslatedTagName,
           'text' => $text
         ];
 
@@ -356,10 +357,13 @@ class TTIKtranslator extends BaseClass
             return str_replace(
                 $dutchName,
                 sprintf(
-                    "<%s>%s</%s>",
-                    $this->selfTranslatedtagName,
+                    "<%s>%s</%s> <%s>%s</%s>",
+                    $this->selfTranslatedTagNameOriginal,
+                    $dutchName,
+                    $this->selfTranslatedTagNameOriginal,
+                    $this->selfTranslatedTagName,
                     $englishName,
-                    $this->selfTranslatedtagName
+                    $this->selfTranslatedTagName
                 ),
                 $text
             );
