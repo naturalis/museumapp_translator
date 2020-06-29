@@ -46,4 +46,8 @@
             $n->printAPIUsage();
 
             break;
+
+        default:
+            echo sprintf("unknown source: %s",($source);
+
     }
