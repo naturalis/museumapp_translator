@@ -38,6 +38,7 @@
             $n->setTranslatorAPIUsageUrl( $translatorAPIUsageUrl );
             $n->setTranslatorAPIKey( $translatorAPIKey );
             $n->setTranslatorMaxRecords( $maxRecords );
+            // $n->setTranslateTitles( true );
 
             $n->initialize();
 

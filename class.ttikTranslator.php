@@ -29,6 +29,7 @@ class TTIKtranslator extends BaseClass
     private $translatorAPIUsageUrl;
     private $translatorAPIKey;
     private $maxRecords;
+    private $translateTitles;
 
     private $selfTranslateNames=true;
     private $selfTranslatedTagName="ttik";
@@ -40,6 +41,11 @@ class TTIKtranslator extends BaseClass
 
     const TABLE = 'ttik_translations';
     const TABLE_NAMES = 'ttik';
+
+    public function __construct ()
+    {
+        $this->setTranslateTitles(false);
+    }
 
     public function setSourceAndTargetLanguage( $source, $target )
     {
@@ -78,6 +84,14 @@ class TTIKtranslator extends BaseClass
         else
         {
             throw new Exception(sprintf("%s is not an integer",$maxRecords), 1);
+        }
+    }
+
+    public function setTranslateTitles( $state )
+    {
+        if (is_bool($state))
+        {
+            $this->translateTitles = $state;
         }
     }
 
@@ -120,7 +134,7 @@ class TTIKtranslator extends BaseClass
         }
 
         $this->log(sprintf("self-translating vernacular names (if available): %s",
-            $this->setSelfTranslateNames ? 'y' : 'n' ), 3, "ttik_translations");
+            $this->selfTranslateNames ? 'y' : 'n' ), 3, "ttik_translations");
     }
 
     public function getUntranslatedTexts()
@@ -186,14 +200,21 @@ class TTIKtranslator extends BaseClass
                     continue;
                 }
 
-                if (isset($this->translatedHeaders[$text['title']]))
+                if ($this->translateTitles)
                 {
-                    $translatedTitle = $this->translatedHeaders[$text['title']];
+                    if (isset($this->translatedHeaders[$text['title']]))
+                    {
+                        $translatedTitle = $this->translatedHeaders[$text['title']];
+                    }
+                    else
+                    {
+                        $this->translatedHeaders[$text['title']] = $translatedTitle = 
+                            $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
+                    }
                 }
                 else
                 {
-                    $this->translatedHeaders[$text['title']] = $translatedTitle = 
-                        $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['title'])));
+                    $translatedTitle = $text['title'];
                 }
 
                 if ($this->selfTranslateNames)
@@ -398,7 +419,7 @@ class TTIKtranslator extends BaseClass
             );
 
         } catch (Exception $e) {
-            $this->log(sprintf("error self-translating name: %s",$e->getMessage(),1, "ttik_translations"));
+            $this->log(sprintf("error self-translating name: %s",$e->getMessage()),1, "ttik_translations"));
             return $text;
         }
     }    
