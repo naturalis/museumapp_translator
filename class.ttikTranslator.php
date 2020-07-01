@@ -39,6 +39,13 @@ class TTIKtranslator extends BaseClass
     private $translatedHeaders=[];
     private $translatedTexts=[];
 
+    private $exportLanguage;
+    private $exportOutfile;
+
+    private $ttik_project_id;
+    private $ttik_language_ids=[];
+    private $ttik_page_ids=[];
+
     const TABLE = 'ttik_translations';
     const TABLE_NAMES = 'ttik';
 
@@ -280,6 +287,91 @@ class TTIKtranslator extends BaseClass
             }
         }
     }
+
+    public function setExportLanguage( $export_language )
+    {
+        $this->exportLanguage = $export_language;
+    }
+
+    public function setExportOutfile( $export_outfile )
+    {
+        $this->exportOutfile = $export_outfile;
+    }
+
+    public function setTtikProjectId( $ttik_project_id )
+    {
+        $this->ttik_project_id = $ttik_project_id;
+    }
+
+    public function setTtikLanguageIds( $ttik_language_ids )
+    {
+        $this->ttik_language_ids = $ttik_language_ids;
+    }
+
+    public function setTtikPageIds( $ttik_page_ids )
+    {
+        $this->ttik_page_ids = $ttik_page_ids;
+    }
+
+    public function doExport()
+    {
+        // $this->exportLanguage = $export_language;
+        // $this->exportOutfile = $export_outfile;
+        $this->getTranslatedTexts();
+        
+        $f = fopen($this->exportOutfile, "w");
+        foreach ($this->translatedTexts as $record)
+        {
+            foreach (json_decode($record["description"]) as $line)
+            {
+                if (!isset($this->ttik_page_ids[$line["title"]]))
+                {
+                    $this->log(sprintf("unknown title: %s", $line["title"]), 1, "ttik_translations");
+                }
+                else
+                if (!isset($this->ttik_language_ids[$this->exportLanguage]))
+                {
+                    $this->log(sprintf("unknown language: %s", $this->exportLanguage), 1, "ttik_translations");
+                }
+                else
+                {    
+                    fputcsv($f, [
+                        $this->ttik_project_id,
+                        $record["taxon_id"],
+                        $this->ttik_language_ids[$this->exportLanguage],
+                        $this->ttik_page_ids[$line["title"]],
+                        $line["body"]
+                    ]);
+                }
+            }
+        }
+        fclose($fp);
+    }
+
+    private function getTranslatedTexts()
+    {
+        $this->connectDatabase();
+
+        $result = $this->db->query("
+            select
+                *
+            from 
+                ".self::TABLE."
+            where 
+                language_code='".$this->exportLanguage."' 
+                and description is not null
+                and verified = 0
+        ");
+
+        while ($row = $result->fetch_array(MYSQLI_ASSOC))
+        {
+            $this->translatedTexts[]=$row;
+        }
+
+        $this->log(sprintf("fetched %s unverified translated descriptions", count($this->translatedTexts)), 3, "ttik_translations");
+    }
+
+
 
     private function doTranslateSingleText($text)
     {
