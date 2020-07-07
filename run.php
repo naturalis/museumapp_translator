@@ -21,6 +21,8 @@
     $translatorAPIKey = getEnv("TRANSLATOR_API_KEY");
     $maxRecords = getEnv("TRANSLATOR_MAX_RECORDS");
 
+    $debug = getEnv("TRANSLATOR_DEBUG")=="1";
+
     $maxRecords = is_numeric($maxRecords) ? intval($maxRecords) : 0;
 
     include_once("class.baseClass.php");
@@ -32,6 +34,7 @@
 
             $n = new TTIKtranslator;
 
+            $n->setDebug( $debug );
             $n->setDatabaseCredentials( $db );
             $n->setSourceAndTargetLanguage( 'nl','en');
             $n->setTranslatorAPIUrl( $translatorAPIUrl );

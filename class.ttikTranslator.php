@@ -46,6 +46,8 @@ class TTIKtranslator extends BaseClass
     private $ttik_language_ids=[];
     private $ttik_page_ids=[];
 
+    private $debug=false;
+
     const TABLE = 'ttik_translations';
     const TABLE_NAMES = 'ttik';
 
@@ -102,6 +104,14 @@ class TTIKtranslator extends BaseClass
         }
     }
 
+    public function setDebug( $state )
+    {
+        if (is_bool($state))
+        {
+            $this->debug = $state;
+        }
+    }
+
     public function initialize()
     {
         if (empty($this->translatorAPIUrl))
@@ -148,11 +158,11 @@ class TTIKtranslator extends BaseClass
     {
         $this->connectDatabase();
 
-        $result = $this->db->query("
+        $query = "
             select
                 source.*,
                 names.dutch as dutch_names,
-                names.english as english_name,
+                names.english as english_names,
                 names.taxon as taxon
 
             from 
@@ -168,14 +178,28 @@ class TTIKtranslator extends BaseClass
                 source.language_code='".$this->languageCode_source."' 
                 and target.description is null
             " . ( $this->maxRecords > 0 ? "limit " . $this->maxRecords : "" ) ."
-        ");
+        ";
 
-        while ($row = $result->fetch_array(MYSQLI_ASSOC))
+        if ($this->debug)
         {
-            $this->untranslatedTexts[]=$row;
+            print_r($query);
         }
 
-        $result = $this->db->query("
+        try {
+
+            $result = $this->db->query($query);
+
+            while ($row = $result->fetch_array(MYSQLI_ASSOC))
+            {
+                $this->untranslatedTexts[]=$row;
+            }
+
+        } catch (Exception $e) {
+
+            $this->log(sprintf("error getting untranslated texts: %s",$e->getMessage(),1, "ttik_translations"));
+        }
+
+        $query = "
             select
                 count(*) as total
             from 
@@ -186,12 +210,27 @@ class TTIKtranslator extends BaseClass
             where 
                 source.language_code='".$this->languageCode_source."' 
                 and target.description is not null
-        ");
+        ";
 
-        $row = $result->fetch_array(MYSQLI_ASSOC);
+        if ($this->debug)
+        {
+            print_r($query);
+        }
+
+        try {
+
+            $result = $this->db->query($query);
+            $row = $result->fetch_array(MYSQLI_ASSOC);
+            $total=$row['total'];
+
+        } catch (Exception $e) {
+
+            $this->log(sprintf("error getting untranslated texts: %s",$e->getMessage(),1, "ttik_translations"));
+
+        }
 
         $this->log(sprintf("fetched %s untranslated descriptions (found %s already translated records)",
-            count($this->untranslatedTexts),$row['total']), 3, "ttik_translations");
+            count($this->untranslatedTexts),$total), 3, "ttik_translations");
     }
 
     public function translateTexts()
@@ -224,17 +263,32 @@ class TTIKtranslator extends BaseClass
                     $translatedTitle = $text['title'];
                 }
 
+                if ($this->debug)
+                {
+                    print_r($text['body']);
+                }
+
                 if ($this->selfTranslateNames)
                 {
                     $text['body'] = $this->selfTranslateName(
                         $text['body'],
                         $val['dutch_names'],
-                        $val['english_name'],
+                        $val['english_names'],
                         $val['taxon']
                     );
                 }
 
+                if ($this->debug)
+                {
+                    print_r($text['body']);
+                }
+
                 $translatedBody = $this->html_entity_encode($this->doTranslateSingleText(html_entity_decode($text['body'])));
+
+                if ($this->debug)
+                {
+                    print_r($translatedBody);
+                }
 
                 if (!empty($translatedBody))
                 {
@@ -245,19 +299,28 @@ class TTIKtranslator extends BaseClass
                                 "/(<".$this->selfTranslatedTagNameOriginal.">[^<]*<\/".$this->selfTranslatedTagNameOriginal.">)/",
                                 "/(<[\/]?".$this->selfTranslatedTagName.">)/",
                                 "/(\s)+/"
-                            ],["",""," "],$translatedBody);
+                            ],[" "," "," "],$translatedBody);
                     }
 
-                    $this->translatedTexts[$val['taxon_id']][] = [
+                    $this->translatedTexts[$val['taxon_id']][] =
+                    [
                         "title" => $translatedTitle,
-                        "body" => $translatedBody,
+                        "body" => $translatedBody
                     ];
+
+                    $this->log(sprintf("fetched '%s' translation for %s",
+                        $text['title'],$val['taxon']), 3, "ttik_translations");                    
                 }
                 else
                 {
-                    $this->log(sprintf("couldn't translate '%s' text for taxon id %s",
-                        $text['title'],$val['taxon_id']), 1, "ttik_translations");
+                    $this->log(sprintf("couldn't translate '%s' for taxon %s",
+                        $text['title'],$val['taxon']), 1, "ttik_translations");
                 }
+
+                if ($this->debug)
+                {
+                    print_r($translatedBody);
+                }                
             }            
         }
     }
@@ -273,7 +336,6 @@ class TTIKtranslator extends BaseClass
     {
         foreach($this->translatedTexts as $taxon_id => $translations)
         {
-
             $stmt = $this->db->prepare("insert into ".self::TABLE." (language_code,description,taxon_id) values (?,?,?)");
             $stmt->bind_param('sss', $this->languageCode_target, json_encode($translations), $taxon_id);
 
@@ -315,14 +377,14 @@ class TTIKtranslator extends BaseClass
 
     public function doExport()
     {
-        // $this->exportLanguage = $export_language;
-        // $this->exportOutfile = $export_outfile;
         $this->getTranslatedTexts();
         
-        $f = fopen($this->exportOutfile, "w");
+        $i=0;
+        $fp = fopen($this->exportOutfile, "w");
+        fputcsv($fp, [ "project_id", "taxon_id", "language_id", "page_id", "content" ]);
         foreach ($this->translatedTexts as $record)
         {
-            foreach (json_decode($record["description"]) as $line)
+            foreach (json_decode($record["description"],true) as $line)
             {
                 if (!isset($this->ttik_page_ids[$line["title"]]))
                 {
@@ -335,17 +397,20 @@ class TTIKtranslator extends BaseClass
                 }
                 else
                 {    
-                    fputcsv($f, [
+                    fputcsv($fp, [
                         $this->ttik_project_id,
                         $record["taxon_id"],
                         $this->ttik_language_ids[$this->exportLanguage],
                         $this->ttik_page_ids[$line["title"]],
-                        $line["body"]
+                        trim($line["body"])
                     ]);
+                    $i++;
                 }
             }
         }
         fclose($fp);
+
+        $this->log(sprintf("exported %s lines to %s", $i, $this->exportOutfile), 3, "ttik_translations");
     }
 
     private function getTranslatedTexts()
@@ -368,10 +433,8 @@ class TTIKtranslator extends BaseClass
             $this->translatedTexts[]=$row;
         }
 
-        $this->log(sprintf("fetched %s unverified translated descriptions", count($this->translatedTexts)), 3, "ttik_translations");
+        $this->log(sprintf("fetched %s unverified translated records", count($this->translatedTexts)), 3, "ttik_translations");
     }
-
-
 
     private function doTranslateSingleText($text)
     {
@@ -468,23 +531,24 @@ class TTIKtranslator extends BaseClass
         return $data;
     }
 
-    private function selfTranslateName($text,$dutch_names,$english_name,$taxon)
+    private function selfTranslateName($text,$dutch_names,$english_names,$taxon)
     {
         try {
 
-            $names_dutch = array_filter(json_decode($dutch_names,true),function($a)
+            $tmp = array_values(array_filter((array)json_decode($dutch_names,true),function($a)
             {
                 return $a["nametype"]=="isPreferredNameOf";
-            });
+            }));
 
-            $dutchName = isset($names_dutch[0]) ? $names_dutch[0]['name'] : null;
+            $dutchName = isset($tmp[0]) ? $tmp[0]['name'] : null;
 
-            $names_english = array_filter(json_decode($english_name,true),function($a)
+
+            $tmp = array_values(array_filter((array)json_decode($english_names,true),function($a)
             {
                 return $a["nametype"]=="isPreferredNameOf";
-            });
+            }));
 
-            $englishName = isset($names_english[0]) ? $names_english[0]['name'] : null;
+            $englishName = isset($tmp[0]) ? $tmp[0]['name'] : null;
 
             if (is_null($dutchName))
             {
