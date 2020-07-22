@@ -2,13 +2,13 @@
 
     $opt = getopt("",["source:"]);
 
-    if (!isset($opt["source"]))
+    if (isset($opt["source"]))
     {
-        $source = "ttik";
+        $source = $opt["source"];
     }
     else
     {
-        $source = $opt["source"];
+        throw new Exception("no source specified (use: --source=[ttik|topstukken]>)", 1);
     }
 
     $db["host"] = getEnv("MYSQL_HOST");
@@ -20,16 +20,17 @@
     $translatorAPIUsageUrl = getEnv("TRANSLATOR_API_USAGE_URL");
     $translatorAPIKey = getEnv("TRANSLATOR_API_KEY");
     $maxRecords = getEnv("TRANSLATOR_MAX_RECORDS");
-
     $debug = getEnv("TRANSLATOR_DEBUG")=="1";
 
     $maxRecords = is_numeric($maxRecords) ? intval($maxRecords) : 0;
 
     include_once("class.baseClass.php");
+    include_once("class.translatorBaseClass.php");
 
     switch ($source)
     {
         case "ttik":
+
             include_once("class.ttikTranslator.php");
 
             $n = new TTIKtranslator;
@@ -42,6 +43,29 @@
             $n->setTranslatorAPIKey( $translatorAPIKey );
             $n->setTranslatorMaxRecords( $maxRecords );
             // $n->setTranslateTitles( true );
+
+            $n->initialize();
+
+            $n->getUntranslatedTexts();
+            $n->translateTexts();
+            $n->storeTranslations();
+            $n->printAPIUsage();
+
+            break;
+
+        case "topstukken":
+
+            include_once("class.topstukkenTranslator.php");
+
+            $n = new TopstukkenTranslator;
+
+            $n->setDebug( $debug );
+            $n->setDatabaseCredentials( $db );
+            $n->setSourceAndTargetLanguage( 'nl','en');
+            $n->setTranslatorAPIUrl( $translatorAPIUrl );
+            $n->setTranslatorAPIUsageUrl( $translatorAPIUsageUrl );
+            $n->setTranslatorAPIKey( $translatorAPIKey );
+            $n->setTranslatorMaxRecords( $maxRecords );
 
             $n->initialize();
 
