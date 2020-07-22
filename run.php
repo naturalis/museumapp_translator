@@ -8,7 +8,7 @@
     }
     else
     {
-        throw new Exception("no source specified (use: --source=[ttik|topstukken]>)", 1);
+        print("no source specified (use: --source=[ttik|topstukken]>)\n");
     }
 
     $db["host"] = getEnv("MYSQL_HOST");
@@ -77,5 +77,12 @@
             break;
 
         default:
-            echo sprintf("error: unknown source '%s'\n",$source);
+
+            $n = new TTIKtranslator;
+
+            $n->setTranslatorAPIUrl( $translatorAPIUrl );
+            $n->setTranslatorAPIUsageUrl( $translatorAPIUsageUrl );
+            $n->setTranslatorAPIKey( $translatorAPIKey );
+            $n->setTranslatorMaxRecords( $maxRecords );
+
     }

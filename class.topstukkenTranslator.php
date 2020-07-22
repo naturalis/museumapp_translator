@@ -24,7 +24,7 @@ class TopstukkenTranslator extends TranslatorBaseClass
             from 
                 ".self::TABLE." source 
                 left join ".self::TABLE_TRANSLATIONS." target 
-                    on source.scientificName = target.scientificName 
+                    on source.id = target.source_id 
                     and target.language_code = '".$this->languageCode_target."' 
 
                 left join ".self::TABLE_NAMES." names 
@@ -93,7 +93,6 @@ class TopstukkenTranslator extends TranslatorBaseClass
 
     public function translateTexts()
     {
-
         foreach ($this->untranslatedTexts as $val)
         {
             $taxonTranslations = [];
@@ -116,7 +115,12 @@ class TopstukkenTranslator extends TranslatorBaseClass
 
                         if ($this->selfTranslateNames)
                         {
-                            $untrnsltd = $this->selfTranslateName($paraElement,$val['dutch_names'],$val['english_names'],$val['taxon']);
+                            $untrnsltd = $this->selfTranslateName(
+                                $paraElement,
+                                $val['dutch_names'],
+                                $val['english_names'],
+                                $val['scientificName']
+                            );
                         }
                         else
                         {
@@ -165,6 +169,7 @@ class TopstukkenTranslator extends TranslatorBaseClass
             }
 
             $this->translatedTexts[$val['scientificName']] = $taxonTranslations;
+            $this->log(sprintf("translated content for %s", $val['scientificName']), 3, "topstukken_translations");
         }
     }
 
