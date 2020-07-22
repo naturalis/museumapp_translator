@@ -78,11 +78,10 @@
 
         default:
 
-            $n = new TTIKtranslator;
+            $n = new TranslatorBaseClass;
 
-            $n->setTranslatorAPIUrl( $translatorAPIUrl );
             $n->setTranslatorAPIUsageUrl( $translatorAPIUsageUrl );
             $n->setTranslatorAPIKey( $translatorAPIKey );
-            $n->setTranslatorMaxRecords( $maxRecords );
+            $n->printAPIUsage();
 
     }

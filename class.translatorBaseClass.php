@@ -115,7 +115,7 @@ class TranslatorBaseClass extends BaseClass
     public function printAPIUsage()
     {
         $data = $this->getAPIUsage();
-        $this->log(sprintf("character count: %s (character limit: %s)",
+        $this->log(sprintf("current API usage; character count: %s (character limit: %s)",
             number_format($data["character_count"]),number_format($data["character_limit"])), 3, "translator_base_class");
     }
 

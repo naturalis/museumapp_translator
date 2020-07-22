@@ -24,7 +24,7 @@ class TopstukkenTranslator extends TranslatorBaseClass
             from 
                 ".self::TABLE." source 
                 left join ".self::TABLE_TRANSLATIONS." target 
-                    on source.id = target.source_id 
+                    on source.registrationNumber = target.registrationNumber 
                     and target.language_code = '".$this->languageCode_target."' 
 
                 left join ".self::TABLE_NAMES." names 
@@ -64,7 +64,7 @@ class TopstukkenTranslator extends TranslatorBaseClass
             from 
                 ".self::TABLE." source 
                 left join ".self::TABLE_TRANSLATIONS." target 
-                    on source.scientificName = target.scientificName 
+                    on source.registrationNumber = target.registrationNumber 
                     and target.language_code = '".$this->languageCode_target."' 
             where 
                 target.description is not null
@@ -168,17 +168,26 @@ class TopstukkenTranslator extends TranslatorBaseClass
                 $taxonTranslations[] = $translations;
             }
 
-            $this->translatedTexts[$val['scientificName']] = $taxonTranslations;
-            $this->log(sprintf("translated content for %s", $val['scientificName']), 3, "topstukken_translations");
+            $this->translatedTexts[$val['registrationNumber']] = [
+                "scientificName" => $val['scientificName'],
+                "translations" => $taxonTranslations
+            ];
+
+            $this->log(sprintf("translated content for %s (%s)", $val['scientificName'], $val['registrationNumber']), 3,
+                "topstukken_translations");
         }
     }
 
     public function storeTranslations()
     {
-        foreach($this->translatedTexts as $scientificName => $translations)
+        foreach($this->translatedTexts as $registrationNumber => $content)
         {
-            $stmt = $this->db->prepare("insert into ".self::TABLE_TRANSLATIONS." (language_code,description,scientificName) values (?,?,?)");
-            $stmt->bind_param('sss', $this->languageCode_target, json_encode($translations), $scientificName);
+            $scientificName = $content["scientificName"];
+            $translations = $content["translations"];
+
+            $stmt = $this->db->prepare("insert into ".self::TABLE_TRANSLATIONS.
+                " (registrationNumber,language_code,description) values (?,?,?)");
+            $stmt->bind_param('sss', $registrationNumber, $this->languageCode_target, json_encode($translations));
 
             if ($stmt->execute())
             {
@@ -200,23 +209,23 @@ class TopstukkenTranslator extends TranslatorBaseClass
         $i=0;
         $fp = fopen($this->exportOutfile, "w");
 
-        fputcsv($fp, [ "scientificName", "language_code", "page_title", "paragraph_title", "paragraph_body" ]);
+        fputcsv($fp, [ "registrationNumber", "language_code", "page_title", "paragraph_title", "paragraph_body" ]);
 
         foreach ($this->translatedTexts as $record)
         {
             foreach(json_decode($record["description"]) as $index => $paragraph)
             {
                 fputcsv($fp, [
-                    ($index==0 ? $record["scientificName"] : ''),
+                    ($index==0 ? $record["registrationNumber"] : ''),
                     ($index==0 ? $record["language_code"] : ''),
                     ($index==0 ? $record["title"] : ''),
                     strip_tags($paragraph[0]),
                     strip_tags($paragraph[1])
                 ]);                
+
+                $i++;
             }
 
-
-            $i++;
         }
 
         fclose($fp);
