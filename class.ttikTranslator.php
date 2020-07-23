@@ -249,6 +249,7 @@ class TTIKtranslator extends TranslatorBaseClass
 
     public function doExport()
     {
+        $this->setTranslatedTextsTable(self::TABLE);
         $this->getTranslatedTexts();
         
         $i=0;

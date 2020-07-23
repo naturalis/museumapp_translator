@@ -3,25 +3,18 @@
     $opt = getopt("",["source:", "outfile:"]);
     $exportPath = rtrim(getEnv("TRANSLATOR_EXPORT_PATH"),"/");
 
-    if (!isset($opt["outfile"]))
+    if (!isset($opt["outfile"]) || !isset($opt["source"]))
     {
-        echo "need an CSV-outfile\n";
-        echo "usage: php export --outfile=<file> --source=[ttik|topstukken]\n";
+        if (!isset($opt["outsourcefile"])) echo "need a source\n";
+        if (!isset($opt["outfile"])) echo "need a CSV-outfile\n";       
+        echo "usage: php export.php --outfile=<file> --source=[ttik|topstukken]\n";
         echo "export path: ", $exportPath, "\n";
         exit(0);
     }
     else
     {
-        $outfile = ltrim($opt["outfile"], "/");
-    }
-
-    if (isset($opt["source"]))
-    {
         $source = $opt["source"];
-    }
-    else
-    {
-        throw new Exception("no source specified (use: --source=[ttik|topstukken]>)", 1);
+        $outfile = ltrim($opt["outfile"], "/");
     }
 
     $db["host"] = getEnv("MYSQL_HOST");
@@ -45,7 +38,7 @@
 
             $n->setTtikProjectId( 1 );
             $n->setTtikLanguageIds( [ "nl" => 24, "en" => 26 ] );
-            $n->setTtikPageIds( [ "Beschrijving" => 1, "Leefperiode" => 4, "Leefgebied" => 5 ] );
+            $n->setTtikPageIds( [ "Beschrijving" => 1, "Leefperiode" => 4, "Leefgebied" => 5, "Description" => 1 ] );
 
             $n->doExport();
 

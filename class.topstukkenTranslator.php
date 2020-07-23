@@ -204,7 +204,8 @@ class TopstukkenTranslator extends TranslatorBaseClass
 
     public function doExport()
     {
-        $this->getTranslatedTexts(self::TABLE_TRANSLATIONS);
+        $this->setTranslatedTextsTable(self::TABLE_TRANSLATIONS);
+        $this->getTranslatedTexts();
         
         $i=0;
         $fp = fopen($this->exportOutfile, "w");

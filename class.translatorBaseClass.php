@@ -14,6 +14,7 @@ class TranslatorBaseClass extends BaseClass
     public $exportLanguage;
     public $exportOutfile;
     public $debug=false;
+    private $translatedTextsTable;
 
     private $translatorAPIUrl;
     private $translatorAPIUsageUrl;
@@ -242,20 +243,31 @@ class TranslatorBaseClass extends BaseClass
         }
     }    
 
-    public function getTranslatedTexts($table=null)
+    public function setTranslatedTextsTable($table)
     {
+        $this->translatedTextsTable = $table;
+    }
+
+    public function getTranslatedTexts($verified_state=false)
+    {
+
+        if (empty($this->translatedTextsTable))
+        {
+            throw new Exception("no table with translated texts specified", 1);
+        }
+
         $this->connectDatabase();
 
         $result = $this->db->query("
             select
                 *
             from 
-                ".(is_null($table) ? self::TABLE : $table)."
+                " . $this->translatedTextsTable . "
             where 
-                language_code='".$this->exportLanguage."' 
+                language_code='" . $this->exportLanguage . "' 
                 and description is not null
-                and verified = 0
-        ");
+                and verified = " . ($verified_state ? "1" : "0")
+        );
 
         while ($row = $result->fetch_array(MYSQLI_ASSOC))
         {
